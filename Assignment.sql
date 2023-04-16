@@ -10,6 +10,8 @@ we will consider the session belongs to Jan  1st irrespective of the end time.
 
 
 -----QUESTION 1 : List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
+--This should help us identify our highest engaging customers. Understanding their behavior can help us optimize for other customers as well. 
+
 --solution 1
 Select 
 	a.device_id, 
@@ -43,6 +45,8 @@ where filter_top_5 <= 5
 
 -----QUESTION 2. How many devices watched at least 10 unique days in the time period August 1, 2019 to September 1, 2019 
 --and they watched more than 10 hours in that same time period? */
+---APPLICATION: Isolating most engaging customers and learning their behavior
+
 
 with agg as 
 (Select 
@@ -64,9 +68,12 @@ where duration_hours > 10 and distinct_dates >= 10
  * for the time period August 1, 2019 to September 1, 2019. 
  * The results should have one row per day of the week (Sunday, Monday, Tuesday, etc.) and should be expressed in hours. 
  */ 
+---APPLICATION: 
+---this should help us identify number days with highest engagement and platforms with highest engagement. 
+---Can be used to identify when to run experiments or marketing campaigns
 
 ----Solution 1
----we have each day with 
+---we have calculated average per day per platform by dividing the total duration by concatenated field of date and platform
 select 
    case when 
       DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
