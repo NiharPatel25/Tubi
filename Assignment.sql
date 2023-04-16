@@ -137,10 +137,10 @@ where year(a.session_start) = 2019
 group by 1,2,3), 
 sorted as 
 (select 
-   main.*, 
+   m.*, 
    row_number()over(partition by country, month_session order by total_duration desc) row_value -----if 2 users are having same rank we are not considering it here
 from 
-   main)
+   main as m)
 select 
     month_session, 
     country, 
