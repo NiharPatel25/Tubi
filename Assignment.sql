@@ -51,7 +51,8 @@ where filter_top_5 <= 5
 with agg as 
 (Select 
 	device_id, 
-	count(distinct substr(cast(session_start as varchar(64)), 1,10)) distinct_dates, ---will need to use substring for mysql
+	count(distinct substr(cast(session_start as varchar(64)), 1,10)) distinct_dates, 
+        ---Removing the time stamps from datetime because we only need date. will need to use substring for mysql
 	cast(sum(duration) as float)/3600 as duration_hours ---converting to hours since its in seconds
 from session_table as a 
 where session_start between cast('2019-08-01' as date) and cast('2019-09-01' as date)
@@ -75,14 +76,6 @@ where duration_hours > 10 and distinct_dates >= 10
 ----Solution 1
 ---we have calculated average per day per platform by dividing the total duration by concatenated field of date and platform
 select 
-      ---Trunc of date gives the date at start of week by default its monday. Subtracting start of week with other days will tell us which day it is. 
-      --- case when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
-      ---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
-      ---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 2 then 'Wedsday'
-     --- when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 3 then 'Thursday'
-      ---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 4 then 'Friday'
-      --when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
-      --when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'end 
       To_Char("session_start", 'DAY') as week_day, 
       cast(sum(duration) as float)/(3600*count(distinct concat(substring(cast(session_start as varchar(64)), 1,10), b.platform))
           as total_duration_per_day_per_platform
@@ -100,6 +93,16 @@ from session_table as a
 Join user_table as b on a.device_id = b.device_id
 group by 1,2
 order by 1,2
+				    
+---If we dont have postgres sql we can use something like this to get the days: 
+---Trunc of date gives the date at start of week by default its monday. Subtracting start of week with other days will tell us which day it is. 
+--- case when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
+---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
+---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 2 then 'Wedsday'
+---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 3 then 'Thursday'
+---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 4 then 'Friday'
+---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
+---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'end 
 
 --------QUESTION 4: List top 5 users with the highest total duration per country for each month in 2019.
 
