@@ -6,7 +6,7 @@ So if a consumer starts a session on Jan 1st 11:59 pm and the duration is 60 min
 we will consider the session belongs to Jan  1st irrespective of the end time. 
 */
 
----The code is mainly written with teradata sql in mind. But should work for most types of SQL services. 
+---The code is mainly written with postgresql in mind. But should work for most types of SQL services. 
 
 
 -----QUESTION 1 : List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
