@@ -9,9 +9,8 @@ we will consider the session belongs to Jan  1st irrespective of the end time.
 ---The code is mainly written with teradata sql in mind. But should work for most types of SQL services. 
 
 
---QUESTION 1 : List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
-
----solution 1
+-----QUESTION 1 : List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
+--solution 1
 Select 
 	a.device_id, 
 	sum(a.duration) total_duration, 
@@ -22,7 +21,7 @@ group by a.device_id
 order by 2
 limit 5
 
----solution 2
+--solution 2
 with agg as 
 (Select 
 	a.device_id, 
@@ -42,7 +41,7 @@ from
 from agg) as fin 
 where filter_top_5 <= 5
 
---QUESTION 2. How many devices watched at least 10 unique days in the time period August 1, 2019 to September 1, 2019 
+-----QUESTION 2. How many devices watched at least 10 unique days in the time period August 1, 2019 to September 1, 2019 
 --and they watched more than 10 hours in that same time period? */
 
 with agg as 
@@ -60,7 +59,7 @@ from agg
 where duration_hours > 10 and distinct_dates >= 10
 ;
 
-
+-----QUESTION 3: 
 /* What is the average total time viewed on each day of the week per platform 
  * for the time period August 1, 2019 to September 1, 2019. 
  * The results should have one row per day of the week (Sunday, Monday, Tuesday, etc.) and should be expressed in hours. 
@@ -91,7 +90,6 @@ select
 from session_table as a 
 Join user_table as b on a.device_id = b.device_id
 group by 1
-
 
 ---Here I am giving a break down with every day but also by platform. So we can see what is the average viewership by every platform per day. 
 ----Solution 2
@@ -143,7 +141,7 @@ from sorted
 where row_value <= 5
 ;
 
-----QUESTION 5: 
+-------QUESTION 5: 
 /* List the device_id and the country of active users. Active users are those who logged in
 to their accounts for 5 or more consecutive days. Return the result table ordered by the
 device_id.*/
