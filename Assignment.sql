@@ -124,6 +124,7 @@ group by 1,2
 order by 1,2
 
 --------QUESTION 4: List top 5 users with the highest total duration per country for each month in 2019.
+
 with main as 
 (select 
    month(a.session_date) month_session, 
@@ -152,6 +153,8 @@ where row_value <= 5
 /* List the device_id and the country of active users. Active users are those who logged in
 to their accounts for 5 or more consecutive days. Return the result table ordered by the
 device_id.*/
+---APPLICATION: Helps us identify users who engage more frequently, and what kind of shows do these users interact with. 
+---These might not necessarily be users who have highest duration. 
 
 ---Only considering consecutive days based on start date. 
 ---If a user has a start datetime at 11:59 PM and the duration extends the view time to another day, we will not consder it to be activity on both days
