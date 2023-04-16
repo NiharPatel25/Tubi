@@ -1,3 +1,14 @@
+/*The duration information is present in the session_table. 
+There is no information about the minimum time needed between 2 sessions to consider them separate sessions. 
+However, that is not needed for the analysis here. 
+We will also focus on only the start date of a session and not consider the end date based on the duration. 
+So if a consumer starts a session on Jan 1st 11:59 pm and the duration is 60 mins changing the date to Jan 2nd, 
+we will consider the session belongs to Jan  1st irrespective of the end time. 
+*/
+
+---The code is mainly written with teradata sql in mind. But should work for most types of SQL services. 
+
+
 --QUESTION 1 : List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
 
 ---solution 1
@@ -38,7 +49,7 @@ with agg as
 (Select 
 	device_id, 
 	count(distinct substr(cast(session_start as varchar(64)), 1,10)) distinct_dates, ---will need to use substring for mysql
-	cast(sum(duration) as float)/3600 duration_hours ---converting to hours since its in seconds
+	cast(sum(duration) as float)/3600 as duration_hours ---converting to hours since its in seconds
 from session_table as a 
 where session_start between cast('2019-08-01' as date) and cast('2019-09-01' as date)
 group by 1
@@ -49,15 +60,15 @@ from agg
 where duration_hours > 10 and distinct_dates >= 10
 ;
 
-----QUESTION 3: 
+
 /* What is the average total time viewed on each day of the week per platform 
  * for the time period August 1, 2019 to September 1, 2019. 
  * The results should have one row per day of the week (Sunday, Monday, Tuesday, etc.) and should be expressed in hours. 
  */ 
 
-
+----Solution 1
+---we have each day with 
 select 
-   b.platform, 
    case when 
       DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
       ---Trunc of date gives the date at start of week by default its monday. Subtracting start of week with other days will tell us which day it is. 
@@ -75,12 +86,39 @@ select
       when 
       DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'
       end as week_day, 
+      cast(sum(duration) as float)/(3600*count(distinct concat(substring(cast(session_start as varchar(64)), 1,10), b.platform))
+          as total_duration_per_day_per_platform
+from session_table as a 
+Join user_table as b on a.device_id = b.device_id
+group by 1
+
+
+---Here I am giving a break down with every day but also by platform. So we can see what is the average viewership by every platform per day. 
+----Solution 2
+select 
+   b.platform, 
+   case when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
+      when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
+      when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 2 then 'Wedsday'
+      when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 3 then 'Thursday'
+      when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 4 then 'Friday'
+      when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
+      when 
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'
+      end as week_day, 
       cast(sum(duration) as float)/(3600*count(distinct substring(cast(session_start as varchar(64)), 1,10))) total_duration_per_day
 from session_table as a 
 Join user_table as b on a.device_id = b.device_id
 group by 1,2
+order by 1,2
 
-------List top 5 users with the highest total duration per country for each month in 2019.
+--------QUESTION 4: List top 5 users with the highest total duration per country for each month in 2019.
 with main as 
 (select 
    month(a.session_date) month_session, 
@@ -94,7 +132,7 @@ group by 1,2,3),
 sorted as 
 (select 
    main.*, 
-   row_number()over(partition by country, month_session order by total_duration desc) row_value
+   row_number()over(partition by country, month_session order by total_duration desc) row_value -----if 2 users are having same rank we are not considering it here
 from 
    main)
 select 
@@ -105,18 +143,20 @@ from sorted
 where row_value <= 5
 ;
 
-
-/*5. List the device_id and the country of active users. Active users are those who logged in
+----QUESTION 5: 
+/* List the device_id and the country of active users. Active users are those who logged in
 to their accounts for 5 or more consecutive days. Return the result table ordered by the
 device_id.*/
 
----Only considering consecutive days based on start date. If a user has a start datetime at 11:59 PM and the duration extends the view time to another day, we will not consder it to be  activity on both days
+---Only considering consecutive days based on start date. 
+---If a user has a start datetime at 11:59 PM and the duration extends the view time to another day, we will not consder it to be activity on both days
 
 with consecutive as 
 (SELECT 
    device_id, 
    session_start,
    dateadd( d, -row_number() over( partition by device_id order by session_start), session_start) consecutive_group
+ ---Helps identify breaks between different consecutive groups
 ---this can be done without the dateadd even if date is converted to just integer
 FROM session_table
 ),
@@ -127,7 +167,7 @@ active_users as
    count(distinct session_start) filter_for_days
 from consecutive
 group by 1,2
-having filter_for_days > 5)
+having filter_for_days >= 5)
 select 
     a.device_id, 
     b.country
