@@ -77,7 +77,7 @@ where duration_hours > 10 and distinct_dates >= 10
 ---we have calculated average per day per platform by dividing the total duration by concatenated field of date and platform
 select 
       To_Char("session_start", 'DAY') as week_day, 
-      cast(sum(duration) as float)/(3600*count(distinct concat(substring(cast(session_start as varchar(64)), 1,10), b.platform))
+      cast(sum(duration) as float)/(3600*count(distinct concat(substr(cast(session_start as varchar(64)), 1,10), b.platform))
           as total_duration_per_day_per_platform
 from session_table as a 
 Join user_table as b on a.device_id = b.device_id
@@ -88,7 +88,7 @@ group by 1
 select 
    b.platform, 
    To_Char("session_start", 'DAY') as week_day, 
-   cast(sum(duration) as float)/(3600*count(distinct substring(cast(session_start as varchar(64)), 1,10))) total_duration_per_day
+   cast(sum(duration) as float)/(3600*count(distinct substr(cast(session_start as varchar(64)), 1,10))) total_duration_per_day
 from session_table as a 
 Join user_table as b on a.device_id = b.device_id
 group by 1,2
