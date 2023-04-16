@@ -1,4 +1,4 @@
-----List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
+--QUESTION 1 : List top 5 device_ids by total duration in September 2019. Exclude device_ids with country Canada (CA).
 
 ---solution 1
 Select 
@@ -31,14 +31,14 @@ from
 from agg) as fin 
 where filter_top_5 <= 5
 
-/*2. How many devices watched at least 10 unique days in the time period August 1, 2019 to September 1, 2019, 
-and they watched more than 10 hours in that same time period? */
+--QUESTION 2. How many devices watched at least 10 unique days in the time period August 1, 2019 to September 1, 2019 
+--and they watched more than 10 hours in that same time period? */
 
 with agg as 
 (Select 
 	device_id, 
-	count(distinct substring(cast(session_start as varchar(64)), 1,10)) distinct_dates, 
-	cast(sum(duration) as float)/3600 duration_hours
+	count(distinct substr(cast(session_start as varchar(64)), 1,10)) distinct_dates, ---will need to use substring for mysql
+	cast(sum(duration) as float)/3600 duration_hours ---converting to hours since its in seconds
 from session_table as a 
 where session_start between cast('2019-08-01' as date) and cast('2019-09-01' as date)
 group by 1
@@ -48,8 +48,8 @@ select
 from agg 
 where duration_hours > 10 and distinct_dates >= 10
 ;
-----write about date
 
+----QUESTION 3: 
 /* What is the average total time viewed on each day of the week per platform 
  * for the time period August 1, 2019 to September 1, 2019. 
  * The results should have one row per day of the week (Sunday, Monday, Tuesday, etc.) and should be expressed in hours. 
@@ -59,7 +59,9 @@ where duration_hours > 10 and distinct_dates >= 10
 select 
    b.platform, 
    case when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday'
+      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
+      ---Trunc of date gives the date at start of week by default its monday. Subtracting start of week with other days will tell us which day it is. 
+      --we can use To_Char("timestamp", 'DAY') in postgres 
       when 
       DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
       when 
@@ -72,9 +74,7 @@ select
       DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
       when 
       DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'
-      end
-      week_day
-      --we can use To_Char("timestamp", 'DAY') in postgres 
+      end as week_day, 
       cast(sum(duration) as float)/(3600*count(distinct substring(cast(session_start as varchar(64)), 1,10))) total_duration_per_day
 from session_table as a 
 Join user_table as b on a.device_id = b.device_id
