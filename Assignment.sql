@@ -75,23 +75,15 @@ where duration_hours > 10 and distinct_dates >= 10
 ----Solution 1
 ---we have calculated average per day per platform by dividing the total duration by concatenated field of date and platform
 select 
-   case when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
       ---Trunc of date gives the date at start of week by default its monday. Subtracting start of week with other days will tell us which day it is. 
-      --we can use To_Char("timestamp", 'DAY') in postgres 
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 2 then 'Wedsday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 3 then 'Thursday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 4 then 'Friday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'
-      end as week_day, 
+      --- case when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
+      ---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
+      ---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 2 then 'Wedsday'
+     --- when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 3 then 'Thursday'
+      ---when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 4 then 'Friday'
+      --when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
+      --when DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'end 
+      To_Char("session_start", 'DAY') as week_day, 
       cast(sum(duration) as float)/(3600*count(distinct concat(substring(cast(session_start as varchar(64)), 1,10), b.platform))
           as total_duration_per_day_per_platform
 from session_table as a 
@@ -102,22 +94,8 @@ group by 1
 ----Solution 2
 select 
    b.platform, 
-   case when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 0 then 'Monday' 
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 1 then 'Tuesday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 2 then 'Wedsday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 3 then 'Thursday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 4 then 'Friday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 5 then 'Saturday'
-      when 
-      DATEDIFF(session_start, DATE_TRUNC('week', cast(session_start as date))) = 6 then 'Sunday'
-      end as week_day, 
-      cast(sum(duration) as float)/(3600*count(distinct substring(cast(session_start as varchar(64)), 1,10))) total_duration_per_day
+   To_Char("session_start", 'DAY') as week_day, 
+   cast(sum(duration) as float)/(3600*count(distinct substring(cast(session_start as varchar(64)), 1,10))) total_duration_per_day
 from session_table as a 
 Join user_table as b on a.device_id = b.device_id
 group by 1,2
@@ -144,6 +122,7 @@ from
 select 
     month_session, 
     country, 
+    device_id,
     total_duration
 from sorted
 where row_value <= 5
@@ -163,23 +142,20 @@ with consecutive as
 (SELECT 
    device_id, 
    session_start,
-   dateadd( d, -row_number() over( partition by device_id order by session_start), session_start) consecutive_group
- ---Helps identify breaks between different consecutive groups
----this can be done without the dateadd even if date is converted to just integer
+   row_number() over( partition by device_id order by session_start) rank_cat
 FROM session_table
 ),
 active_users as 
 (select 
    device_id
-   consecutive_group,
+   session_start - rank_cat consecutive_group,---for a particular group of consecutive days, what are the number of days in them
    count(distinct session_start) filter_for_days
 from consecutive
-group by 1,2
-having filter_for_days >= 5)
+group by 1,2)
 select 
     a.device_id, 
     b.country
-from (select distinct device_id from active_users) as a 
+from (select distinct device_id from active_users where filter_for_days >= 5) as a 
 left join user_table as b on a.device_id = b.device_id
 order by a.device_id
 
